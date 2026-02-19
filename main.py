@@ -82,7 +82,7 @@ async def post_reddit():
                 try:
                     channel = await bot.fetch_channel(int(channel_id))
                     if channel:
-                        await channel.send(f"{title}\n{image_url}")
+                        await channel.send(f"{title}\nOriginal post: {image_url}")
                     else:
                         print(f"Channel {channel_id} not found for guild {guild_id}")
                 except Exception as e:
