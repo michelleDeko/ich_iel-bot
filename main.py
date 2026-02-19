@@ -30,10 +30,12 @@ async def get_latest_post(subreddit):
     if response.status_code == 200:
         try:
             data = response.json()
+            print(f"Fetched data from Reddit: {data}")
             if data["data"]["children"]:
                 for child in data["data"]["children"]:
                     post = child["data"]
                     if post.get("post_hint") == "image" and post.get("url", "").endswith((".jpg", ".png", ".jpeg", ".gif")):
+                        print(f"Found image post: {post['title']} - {post['url']}")
                         return post["title"], post["url"]
         except (KeyError, json.JSONDecodeError):
             return None, None
@@ -49,7 +51,7 @@ async def setChannel(message):
             guild_id = getattr(channel, "guild_id", None) or getattr(channel, "guild", {}).get("id", None)
             print(f"Setting channel to {channel_id} for guild {guild_id}")
             try:
-                con = sqlite3.connect('ich_iel-bot.db')
+                con = sqlite3.connect('data/ich_iel-bot.db')
                 con = con.cursor()
                 con.execute("CREATE TABLE IF NOT EXISTS channels (guild_id INTEGER PRIMARY KEY, channel_id INTEGER)")
                 con.execute("INSERT OR REPLACE INTO channels (guild_id, channel_id) VALUES (?, ?)", (guild_id, channel_id))
@@ -71,7 +73,7 @@ async def post_reddit():
     title, image_url = await get_latest_post(subreddit)
     if title and image_url:
         try:
-            con = sqlite3.connect('ich_iel-bot.db') # i like sqlite
+            con = sqlite3.connect('data/ich_iel-bot.db') # i like sqlite
             con = con.cursor()
             con.execute("SELECT guild_id, channel_id FROM channels")
             rows = con.fetchall()
@@ -91,5 +93,9 @@ async def post_reddit():
             print(f"Database error: {e}")
 
 if __name__ == "__main__":
+    print("Starting bot...")
     TOKEN = os.getenv("FLUXER_TOKEN")
-    bot.run(TOKEN)
+    if not TOKEN:
+        print("Error: FLUXER_TOKEN not found in environment variables")
+    else:
+        bot.run(TOKEN)

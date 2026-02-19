@@ -1,4 +1,4 @@
-fluxer.py==0.2.0
+fluxer.py
 requests
 asyncio
 dotenv
