@@ -45,11 +45,14 @@ async def setChannel(message):
     if len(args) == 2:
         try:
             channel_id = int(args[1])
+            channel = await bot.fetch_channel(channel_id)
+            guild_id = getattr(channel, "guild_id", None) or getattr(channel, "guild", {}).get("id", None)
+            print(f"Setting channel to {channel_id} for guild {guild_id}")
             try:
                 con = sqlite3.connect('ich_iel-bot.db')
                 con = con.cursor()
-                con.execute("CREATE TABLE IF NOT EXISTS channels (key TEXT PRIMARY KEY, value TEXT)")
-                con.execute("INSERT OR REPLACE INTO channels (key, value) VALUES (?, ?)", ("channel_id", str(channel_id)))
+                con.execute("CREATE TABLE IF NOT EXISTS channels (guild_id INTEGER PRIMARY KEY, channel_id INTEGER)")
+                con.execute("INSERT OR REPLACE INTO channels (guild_id, channel_id) VALUES (?, ?)", (guild_id, channel_id))
                 con.connection.commit()
                 await message.channel.send(f"Channel set to {channel_id}")
             except sqlite3.Error as e:
@@ -61,7 +64,7 @@ async def setChannel(message):
 
 @bot.command()
 async def version(message):
-    await message.channel.send("Version 0.1 is running")
+    await message.channel.send("Version 0.2 is running")
 
 async def post_reddit():
     subreddit = "ich_iel" # I guess I could make this editable through the env file, so it's not just a bot for ich_iel lol
@@ -70,17 +73,20 @@ async def post_reddit():
         try:
             con = sqlite3.connect('ich_iel-bot.db') # i like sqlite
             con = con.cursor()
-            con.execute("SELECT value FROM channels WHERE key = ?", ("channel_id",))
-            result = con.fetchone()
-            if result:
-                channel_id = int(result[0])
-                channel = await bot.fetch_channel(channel_id)
-                if channel:
-                    await channel.send(f"{title}\n{image_url}")
-                else:
-                    print("Channel not found")
-            else:
-                print("No channel set")
+            con.execute("SELECT guild_id, channel_id FROM channels")
+            rows = con.fetchall()
+            if not rows:
+                print("No channels set")
+                return
+            for guild_id, channel_id in rows:
+                try:
+                    channel = await bot.fetch_channel(int(channel_id))
+                    if channel:
+                        await channel.send(f"{title}\n{image_url}")
+                    else:
+                        print(f"Channel {channel_id} not found for guild {guild_id}")
+                except Exception as e:
+                    print(f"Error sending to channel {channel_id}: {e}")
         except sqlite3.Error as e:
             print(f"Database error: {e}")
 
