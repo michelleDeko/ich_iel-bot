@@ -28,16 +28,21 @@ async def get_latest_post(subreddit):
     headers = {"User-Agent": "Mozilla/5.0 (compatible; ich_iel-Bot/0.1)"}
     response = requests.get(url, headers=headers)
     if response.status_code == 200:
-        try:
-            data = response.json()
-            print(f"Fetched data from Reddit: {data}")
-            if data["data"]["children"]:
-                for child in data["data"]["children"]:
-                    post = child["data"]
-                    if post.get("post_hint") == "image" and post.get("url", "").endswith((".jpg", ".png", ".jpeg", ".gif")):
-                        print(f"Found image post: {post['title']} - {post['url']}")
-                        return post["title"], post["url"]
-        except (KeyError, json.JSONDecodeError):
+        if response.headers.get("Content-Type", "").startswith("application/json"):
+            try:
+                data = response.json()
+                print(f"Fetched data from Reddit: {data}")
+                if data["data"]["children"]:
+                    for child in data["data"]["children"]:
+                        post = child["data"]
+                        if post.get("post_hint") == "image" and post.get("url", "").endswith((".jpg", ".png", ".jpeg", ".gif")):
+                            print(f"Found image post: {post['title']} - {post['url']}")
+                            return post["title"], post["url"]
+            except (KeyError, json.JSONDecodeError):
+                return None, None
+        else:
+            print(f"Unexpected content type from Reddit: {response.headers.get('Content-Type')}")
+            print(f"Response content: {response.text}")
             return None, None
     else:
         print(f"Failed to fetch Reddit data (maybe a block?): {response.status_code}")
