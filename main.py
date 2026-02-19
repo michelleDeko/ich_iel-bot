@@ -39,7 +39,9 @@ async def get_latest_post(subreddit):
                         return post["title"], post["url"]
         except (KeyError, json.JSONDecodeError):
             return None, None
-    return None, None
+    else:
+        print(f"Failed to fetch Reddit data (maybe a block?): {response.status_code}")
+        return None, None
 
 @bot.command()
 async def setChannel(message):
