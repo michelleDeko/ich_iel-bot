@@ -8,7 +8,7 @@ __pycache__/
 *.so
 
 # Custom stuff
-ich_iel-bot.db
+data/
 
 # Distribution / packaging
 .Python

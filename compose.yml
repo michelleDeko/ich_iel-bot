@@ -1,0 +1,7 @@
+services:
+  ich_iel-bot:
+    build: .
+    volumes:
+      - ./data:/app/data
+    environment:
+      - .env
