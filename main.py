@@ -25,8 +25,9 @@ async def post_reddit_periodically():
         await asyncio.sleep(int(os.getenv("INTERVAL", 3600)))
 
 async def get_latest_post(subreddit):
-    url = f"https://www.reddit.com/r/{subreddit}/hot.json?limit=20"
-    headers = {"User-Agent": "Mozilla/5.0 (compatible; ich_iel-Bot/0.1)"}
+    post_limit = os.getenv("POST_LIMIT", 20)
+    url = f"https://www.reddit.com/r/{subreddit}/hot.json?limit={post_limit}"
+    headers = {"User-Agent": "Mozilla/5.0 (compatible; ich_iel-Bot/0.3)"}
     response = requests.get(url, headers=headers)
     if response.status_code == 200:
         if response.headers.get("Content-Type", "").startswith("application/json"):
@@ -80,7 +81,7 @@ async def setChannel(message):
                 con = sqlite3.connect('data/ich_iel-bot.db')
                 cur = con.cursor()
                 cur.execute("INSERT OR REPLACE INTO channels (guild_id, channel_id) VALUES (?, ?)", (guild_id, channel_id))
-                con.connection.commit()
+                con.commit()
                 await message.channel.send(f"Channel set to {channel_id}")
             except sqlite3.Error as e:
                 await message.channel.send(f"Database error: {e}")
@@ -91,19 +92,19 @@ async def setChannel(message):
 
 @bot.command()
 async def version(message):
-    await message.channel.send("Version 0.2 is running")
+    await message.channel.send("Version 0.3 is running")
 
 async def post_reddit():
-    subreddit = "ich_iel"
+    subreddit = os.getenv("SUBREDDIT", "ich_iel")
     posts = await get_latest_post(subreddit)
     if not posts:
         print("No image posts found.")
         return
     try:
         con = sqlite3.connect('data/ich_iel-bot.db')
-        con = con.cursor()
-        con.execute("SELECT guild_id, channel_id FROM channels")
-        rows = con.fetchall()
+        cur = con.cursor()
+        cur.execute("SELECT guild_id, channel_id FROM channels")
+        rows = cur.fetchall()
         if not rows:
             print("No channels set")
             return
@@ -114,7 +115,7 @@ async def post_reddit():
                 if not post_id_match:
                     continue
                 post_id = post_id_match.group(1)
-                is_posted = con.execute("SELECT post_id FROM posted WHERE guild_id = ? AND post_id = ?", (guild_id, post_id)).fetchone()
+                is_posted = cur.execute("SELECT post_id FROM posted WHERE guild_id = ? AND post_id = ?", (guild_id, post_id)).fetchone()
                 if is_posted:
                     print(f"Post {post_id} already posted in guild {guild_id}, skipping.")
                     continue
@@ -122,8 +123,8 @@ async def post_reddit():
                     channel = await bot.fetch_channel(int(channel_id))
                     if channel:
                         await channel.send(f"{title}\nOriginal post: {image_url}")
-                        con.execute("INSERT OR REPLACE INTO posted (guild_id, post_id) VALUES (?, ?)", (guild_id, post_id))
-                        con.connection.commit()
+                        cur.execute("INSERT OR REPLACE INTO posted (guild_id, post_id) VALUES (?, ?)", (guild_id, post_id))
+                        con.commit()
                         print(f"Posted to channel {channel_id} in guild {guild_id}")
                         break
                     else:
