@@ -54,16 +54,21 @@ async def get_latest_post(subreddit):
 async def init_db():
     try:
         con = sqlite3.connect('data/ich_iel-bot.db')
-        con = con.cursor()
-        con.execute("CREATE TABLE IF NOT EXISTS channels (guild_id INTEGER PRIMARY KEY, channel_id INTEGER)")
-        con.execute("CREATE TABLE IF NOT EXISTS posted (guild_id INTEGER, post_id VARCHAR(255) PRIMARY KEY)")
-        con.connection.commit()
+        cur = con.cursor()
+        cur.execute("CREATE TABLE IF NOT EXISTS channels (guild_id INTEGER PRIMARY KEY, channel_id INTEGER)")
+        cur.execute("CREATE TABLE IF NOT EXISTS posted (guild_id INTEGER, post_id VARCHAR(255), PRIMARY KEY (guild_id, post_id))")
+        con.commit()
         print("Database initialized successfully")
     except sqlite3.Error as e:
         print(f"Database initialization error: {e}")
 
 @bot.command()
 async def setChannel(message):
+    """ Is not implement yet according to fluxer-py on Fluxer
+    if not message.author.guild_permissions.administrator or not message.author.guild_permissions.manage_channels:
+        await message.channel.send("You need administrator permissions to use this command.")
+        return
+    """
     args = message.content.split()
     if len(args) == 2:
         try:
@@ -102,12 +107,13 @@ async def post_reddit():
         if not rows:
             print("No channels set")
             return
-        for title, image_url in posts:
-            post_id_match = re.search(r"\/([^\/]+)\.(jpg|png|jpeg|gif)$", image_url)
-            if not post_id_match:
-                continue
-            post_id = post_id_match.group(1)
-            for guild_id, channel_id in rows:
+        for guild_id, channel_id in rows:
+            print(f"Processing guild {guild_id}")
+            for title, image_url in posts:
+                post_id_match = re.search(r"\/([^\/]+)\.(jpg|png|jpeg|gif)$", image_url)
+                if not post_id_match:
+                    continue
+                post_id = post_id_match.group(1)
                 is_posted = con.execute("SELECT post_id FROM posted WHERE guild_id = ? AND post_id = ?", (guild_id, post_id)).fetchone()
                 if is_posted:
                     print(f"Post {post_id} already posted in guild {guild_id}, skipping.")
@@ -119,12 +125,12 @@ async def post_reddit():
                         con.execute("INSERT OR REPLACE INTO posted (guild_id, post_id) VALUES (?, ?)", (guild_id, post_id))
                         con.connection.commit()
                         print(f"Posted to channel {channel_id} in guild {guild_id}")
-                        return
+                        break
                     else:
                         print(f"Channel {channel_id} not found for guild {guild_id}")
                 except Exception as e:
                     print(f"Error sending to channel {channel_id}: {e}")
-        print("Alle gefundenen Posts wurden bereits gepostet.")
+            print("All posts processed.")
     except sqlite3.Error as e:
         print(f"Database error: {e}")
 
