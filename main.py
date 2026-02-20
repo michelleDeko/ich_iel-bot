@@ -78,8 +78,8 @@ async def setChannel(message):
             print(f"Setting channel to {channel_id} for guild {guild_id}")
             try:
                 con = sqlite3.connect('data/ich_iel-bot.db')
-                con = con.cursor()
-                con.execute("INSERT OR REPLACE INTO channels (guild_id, channel_id) VALUES (?, ?)", (guild_id, channel_id))
+                cur = con.cursor()
+                cur.execute("INSERT OR REPLACE INTO channels (guild_id, channel_id) VALUES (?, ?)", (guild_id, channel_id))
                 con.connection.commit()
                 await message.channel.send(f"Channel set to {channel_id}")
             except sqlite3.Error as e:
