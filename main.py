@@ -6,6 +6,7 @@ from dotenv import load_dotenv
 import sqlite3
 import os
 import re
+import logging
 
 # this is a bot which posts the latest image post from ich_iel
 # the code probably sucks, but it works, so I don't care
@@ -14,9 +15,26 @@ import re
 bot = fluxer.Bot(command_prefix="/", intents=fluxer.Intents.GUILD_MESSAGES | fluxer.Intents.GUILDS)
 load_dotenv()
 
+log_level = os.getenv("LOG_LEVEL", "INFO").upper()
+log_formatter = logging.Formatter(
+    fmt="%(asctime)s [%(levelname)s] %(message)s",
+    datefmt="%Y-%m-%d %H:%M:%S",
+)
+
+file_handler = logging.FileHandler("data/bot.log", encoding="utf-8")
+file_handler.setFormatter(log_formatter)
+
+console_handler = logging.StreamHandler()
+console_handler.setFormatter(log_formatter)
+
+logging.basicConfig(
+    level=getattr(logging, log_level, logging.INFO),
+    handlers=[file_handler, console_handler],
+)
+
 @bot.event
 async def on_ready():
-    print(f"Logged in as {bot.user}")
+    logging.info(f"Logged in as {bot.user}")
     asyncio.create_task(post_reddit_periodically())
 
 async def post_reddit_periodically():
@@ -33,23 +51,24 @@ async def get_latest_post(subreddit):
         if response.headers.get("Content-Type", "").startswith("application/json"):
             try:
                 data = response.json()
-                print(f"Fetched data from Reddit: {data}")
+                logging.debug(f"Fetched data from Reddit: {data}")
                 posts = []
                 if data["data"]["children"]:
                     for child in data["data"]["children"]:
                         post = child["data"]
                         if post.get("post_hint") == "image" and post.get("url", "").endswith((".jpg", ".png", ".jpeg", ".gif")):
-                            print(f"Found image post: {post['title']} - {post['url']}")
+                            logging.info(f"Found image post: {post['title']} - {post['url']}")
                             posts.append((post["title"], post["url"]))
                 return posts
             except (KeyError, json.JSONDecodeError):
+                logging.error(f"Error parsing Reddit response: {response.text}")
                 return []
         else:
-            print(f"Unexpected content type from Reddit: {response.headers.get('Content-Type')}")
-            print(f"Response content: {response.text}")
+            logging.warning(f"Unexpected content type from Reddit: {response.headers.get('Content-Type')}")
+            logging.warning(f"Response content: {response.text}")
             return []
     else:
-        print(f"Failed to fetch Reddit data (maybe a block?): {response.status_code}")
+        logging.error(f"Failed to fetch Reddit data (maybe a block?): {response.status_code}")
         return []
 
 async def init_db():
@@ -59,9 +78,9 @@ async def init_db():
         cur.execute("CREATE TABLE IF NOT EXISTS channels (guild_id INTEGER PRIMARY KEY, channel_id INTEGER)")
         cur.execute("CREATE TABLE IF NOT EXISTS posted (guild_id INTEGER, post_id VARCHAR(255), PRIMARY KEY (guild_id, post_id))")
         con.commit()
-        print("Database initialized successfully")
+        logging.info("Database initialized successfully")
     except sqlite3.Error as e:
-        print(f"Database initialization error: {e}")
+        logging.error(f"Database initialization error: {e}")
 
 @bot.command()
 async def setChannel(message):
@@ -76,7 +95,7 @@ async def setChannel(message):
             channel_id = int(args[1])
             channel = await bot.fetch_channel(channel_id)
             guild_id = getattr(channel, "guild_id", None) or getattr(channel, "guild", {}).get("id", None)
-            print(f"Setting channel to {channel_id} for guild {guild_id}")
+            logging.info(f"Setting channel to {channel_id} for guild {guild_id}")
             try:
                 con = sqlite3.connect('data/ich_iel-bot.db')
                 cur = con.cursor()
@@ -84,6 +103,7 @@ async def setChannel(message):
                 con.commit()
                 await message.channel.send(f"Channel set to {channel_id}")
             except sqlite3.Error as e:
+                logging.error(f"Database error: {e}")
                 await message.channel.send(f"Database error: {e}")
         except ValueError:
             await message.channel.send("Invalid channel ID")
@@ -98,7 +118,7 @@ async def post_reddit():
     subreddit = os.getenv("SUBREDDIT", "ich_iel")
     posts = await get_latest_post(subreddit)
     if not posts:
-        print("No image posts found.")
+        logging.info("No image posts found.")
         return
     try:
         con = sqlite3.connect('data/ich_iel-bot.db')
@@ -106,10 +126,10 @@ async def post_reddit():
         cur.execute("SELECT guild_id, channel_id FROM channels")
         rows = cur.fetchall()
         if not rows:
-            print("No channels set")
+            logging.info("No channels set")
             return
         for guild_id, channel_id in rows:
-            print(f"Processing guild {guild_id}")
+            logging.info(f"Processing guild {guild_id}")
             for title, image_url in posts:
                 post_id_match = re.search(r"\/([^\/]+)\.(jpg|png|jpeg|gif)$", image_url)
                 if not post_id_match:
@@ -117,7 +137,7 @@ async def post_reddit():
                 post_id = post_id_match.group(1)
                 is_posted = cur.execute("SELECT post_id FROM posted WHERE guild_id = ? AND post_id = ?", (guild_id, post_id)).fetchone()
                 if is_posted:
-                    print(f"Post {post_id} already posted in guild {guild_id}, skipping.")
+                    logging.info(f"Post {post_id} already posted in guild {guild_id}, skipping.")
                     continue
                 try:
                     channel = await bot.fetch_channel(int(channel_id))
@@ -125,21 +145,21 @@ async def post_reddit():
                         await channel.send(f"{title}\nOriginal post: {image_url}")
                         cur.execute("INSERT OR REPLACE INTO posted (guild_id, post_id) VALUES (?, ?)", (guild_id, post_id))
                         con.commit()
-                        print(f"Posted to channel {channel_id} in guild {guild_id}")
+                        logging.info(f"Posted to channel {channel_id} in guild {guild_id}")
                         break
                     else:
-                        print(f"Channel {channel_id} not found for guild {guild_id}")
+                        logging.warning(f"Channel {channel_id} not found for guild {guild_id}")
                 except Exception as e:
-                    print(f"Error sending to channel {channel_id}: {e}")
-            print("All posts processed.")
+                    logging.error(f"Error sending to channel {channel_id}: {e}")
+            logging.info("All posts processed.")
     except sqlite3.Error as e:
-        print(f"Database error: {e}")
+        logging.error(f"Database error: {e}")
 
 if __name__ == "__main__":
-    print("Starting bot...")
+    logging.info("Starting bot...")
     asyncio.run(init_db())
     TOKEN = os.getenv("FLUXER_TOKEN")
     if not TOKEN:
-        print("Error: FLUXER_TOKEN not found in environment variables")
+        logging.error("Error: FLUXER_TOKEN not found in environment variables")
     else:
         bot.run(TOKEN)
