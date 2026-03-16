@@ -10,10 +10,12 @@ import logging
 
 # this is a bot which posts the latest image post from ich_iel
 # the code probably sucks, but it works, so I don't care
-# the bot is also "stupid" because it doesn't check if the post has already been posted, this would be the next thing I would try
 
-bot = fluxer.Bot(command_prefix="/", intents=fluxer.Intents.GUILD_MESSAGES | fluxer.Intents.GUILDS)
 load_dotenv()
+prefix = os.getenv("COMMAND_PREFIX", "/")
+bot = fluxer.Bot(command_prefix=prefix, intents=fluxer.Intents.GUILD_MESSAGES | fluxer.Intents.GUILDS)
+
+task = None
 
 log_level = os.getenv("LOG_LEVEL", "INFO").upper()
 log_formatter = logging.Formatter(
@@ -34,8 +36,10 @@ logging.basicConfig(
 
 @bot.event
 async def on_ready():
+    global task
     logging.info(f"Logged in as {bot.user}")
-    asyncio.create_task(post_reddit_periodically())
+    if task is None or task.done():
+        task = asyncio.create_task(post_reddit_periodically())
 
 async def post_reddit_periodically():
     while True:
@@ -84,17 +88,18 @@ async def init_db():
 
 @bot.command()
 async def setChannel(message):
-    """ Is not implement yet according to fluxer-py on Fluxer
-    if not message.author.guild_permissions.administrator or not message.author.guild_permissions.manage_channels:
-        await message.channel.send("You need administrator permissions to use this command.")
-        return
-    """
     args = message.content.split()
     if len(args) == 2:
         try:
             channel_id = int(args[1])
             channel = await bot.fetch_channel(channel_id)
             guild_id = getattr(channel, "guild_id", None) or getattr(channel, "guild", {}).get("id", None)
+            author_id = message.author.id
+            guild = await bot.fetch_guild(guild_id)
+            member = await guild.fetch_member(author_id)
+            if not member.user.id == guild.owner_id:
+                await message.channel.send(f"You need to be administrator to use this command.")
+                return
             logging.info(f"Setting channel to {channel_id} for guild {guild_id}")
             try:
                 con = sqlite3.connect('data/ich_iel-bot.db')
@@ -131,7 +136,7 @@ async def post_reddit():
         for guild_id, channel_id in rows:
             logging.info(f"Processing guild {guild_id}")
             for title, image_url in posts:
-                post_id_match = re.search(r"\/([^\/]+)\.(jpg|png|jpeg|gif)$", image_url)
+                post_id_match = re.search(r"/([^/]+)\.(jpg|png|jpeg|gif)$", image_url)
                 if not post_id_match:
                     continue
                 post_id = post_id_match.group(1)
