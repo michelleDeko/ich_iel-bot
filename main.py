@@ -119,6 +119,19 @@ async def setChannel(message):
 async def version(message):
     await message.channel.send("Version 0.3 is running")
 
+# the cat bot died, so i wanted to add this command to this bot
+@bot.command()
+async def cat(message):
+    response = requests.get("https://api.thecatapi.com/v1/images/search")
+    if response.status_code == 200:
+        data = response.json()
+        if data and isinstance(data, list) and "url" in data[0]:
+            await message.channel.send(data[0]["url"])
+        else:
+            await message.channel.send("Could not fetch cat image")
+    else:
+        await message.channel.send("Failed to fetch cat image")
+
 async def post_reddit():
     subreddit = os.getenv("SUBREDDIT", "ich_iel")
     posts = await get_latest_post(subreddit)
