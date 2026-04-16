@@ -7,13 +7,14 @@ import sqlite3
 import os
 import re
 import logging
+import random
 
 # this is a bot which posts the latest image post from ich_iel
 # the code probably sucks, but it works, so I don't care
 
 load_dotenv()
 prefix = os.getenv("COMMAND_PREFIX", "/")
-bot = fluxer.Bot(command_prefix=prefix, intents=fluxer.Intents.GUILD_MESSAGES | fluxer.Intents.GUILDS)
+bot = fluxer.Bot(command_prefix=prefix, intents=fluxer.Intents.GUILD_MESSAGES | fluxer.Intents.GUILDS | fluxer.Intents.MESSAGE_CONTENT)
 
 task = None
 
@@ -117,7 +118,7 @@ async def setChannel(message):
 
 @bot.command()
 async def version(message):
-    await message.channel.send("Version 0.3 is running")
+    await message.channel.send("Version 0.4 is running")
 
 # the cat bot died, so i wanted to add this command to this bot
 @bot.command()
@@ -160,11 +161,17 @@ async def post_reddit():
                 try:
                     channel = await bot.fetch_channel(int(channel_id))
                     if channel:
-                        await channel.send(f"{title}\nOriginal post: {image_url}")
-                        cur.execute("INSERT OR REPLACE INTO posted (guild_id, post_id) VALUES (?, ?)", (guild_id, post_id))
-                        con.commit()
-                        logging.info(f"Posted to channel {channel_id} in guild {guild_id}")
-                        break
+                        if await check_guild(guild_id):
+                            await channel.send(f"{title}\nOriginal post: {image_url}")
+                            cur.execute("INSERT OR REPLACE INTO posted (guild_id, post_id) VALUES (?, ?)", (guild_id, post_id))
+                            con.commit()
+                            logging.info(f"Posted to channel {channel_id} in guild {guild_id}")
+                            break
+                        else:
+                            logging.warning(f"Bot is not in guild {guild_id}, removing guild from database")
+                            cur.execute("DELETE FROM channels WHERE guild_id = ?", (guild_id,))
+                            con.commit()
+                            break
                     else:
                         logging.warning(f"Channel {channel_id} not found for guild {guild_id}")
                 except Exception as e:
@@ -172,6 +179,48 @@ async def post_reddit():
             logging.info("All posts processed.")
     except sqlite3.Error as e:
         logging.error(f"Database error: {e}")
+
+@bot.event
+async def on_message(message):
+    cat_keywords = ["cat", "katze", "meow", "miau"]
+    if any(word in message.content.lower() for word in cat_keywords):
+        # I need more cat emotes
+        cat_reactions = ["<:flowercat:1494345195448304817>", "😾", "<:blehcat:1494355924738195854>", "<:honestreactioncat:1494356157782122892>"]
+        reaction = random.choice(cat_reactions)
+        await message.add_reaction(reaction)
+
+async def check_guild(guild_id):
+    try:
+        guild = await bot.fetch_guild(guild_id)
+        logging.info(f"Bot is still in guild: {guild.name}")
+        return True
+    except fluxer.NotFound:
+        logging.warning(f"Bot is not in guild {guild_id}")
+        return False
+    except fluxer.Forbidden:
+        logging.warning(f"Bot doesn't have access to guild {guild_id}")
+        return False
+
+@bot.event
+async def on_guild_remove(guild):
+    if isinstance(guild, fluxer.Guild):
+        guild_id = guild.id
+        logging.info(f"Removed from guild: {guild.name} (ID: {guild_id}), removing from database")
+    else:
+        if guild.get("unavailable"):
+            logging.info(f"Guild {guild.get('id')} is temporarily unavailable, ignoring")
+            return
+        guild_id = int(guild["id"])
+        logging.info(f"Removed from guild {guild_id}, removing from database")
+    try:
+        con = sqlite3.connect('data/ich_iel-bot.db')
+        cur = con.cursor()
+        cur.execute("DELETE FROM channels WHERE guild_id = ?", (guild_id,))
+        cur.execute("DELETE FROM posted WHERE guild_id = ?", (guild_id,))
+        con.commit()
+        logging.info(f"Guild {guild_id} removed from database successfully")
+    except sqlite3.Error as e:
+        logging.error(f"Database error while removing guild {guild_id}: {e}")
 
 if __name__ == "__main__":
     logging.info("Starting bot...")
