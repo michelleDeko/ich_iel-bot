@@ -118,7 +118,7 @@ async def setChannel(message):
 
 @bot.command()
 async def version(message):
-    await message.channel.send("Version 0.4.0 is running")
+    await message.channel.send("Version 0.4.0 is running\nSource code: https://github.com/michelleDeko/ich_iel-bot")
 
 # the cat bot died, so i wanted to add this command to this bot
 @bot.command()
