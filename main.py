@@ -62,7 +62,7 @@ async def get_latest_post(subreddit):
                     for child in data["data"]["children"]:
                         post = child["data"]
                         if post.get("post_hint") == "image" and post.get("url", "").endswith((".jpg", ".png", ".jpeg", ".gif")):
-                            logging.info(f"Found image post: {post['title']} - {post['url']}")
+                            logging.debug(f"Found image post: {post['title']} - {post['url']}")
                             posts.append((post["title"], post["url"]))
                 return posts
             except (KeyError, json.JSONDecodeError):
@@ -118,7 +118,7 @@ async def setChannel(message):
 
 @bot.command()
 async def version(message):
-    await message.channel.send("Version 0.4.0 is running\nSource code: https://github.com/michelleDeko/ich_iel-bot")
+    await message.channel.send("Version 0.4.1 is running\nSource code: https://github.com/michelleDeko/ich_iel-bot")
 
 # the cat bot died, so i wanted to add this command to this bot
 @bot.command()
@@ -156,7 +156,7 @@ async def post_reddit():
                 post_id = post_id_match.group(1)
                 is_posted = cur.execute("SELECT post_id FROM posted WHERE guild_id = ? AND post_id = ?", (guild_id, post_id)).fetchone()
                 if is_posted:
-                    logging.info(f"Post {post_id} already posted in guild {guild_id}, skipping.")
+                    logging.debug(f"Post {post_id} already posted in guild {guild_id}, skipping.")
                     continue
                 try:
                     channel = await bot.fetch_channel(int(channel_id))
@@ -176,7 +176,7 @@ async def post_reddit():
                         logging.warning(f"Channel {channel_id} not found for guild {guild_id}")
                 except Exception as e:
                     logging.error(f"Error sending to channel {channel_id}: {e}")
-            logging.info("All posts processed.")
+            logging.debug("All posts processed.")
     except sqlite3.Error as e:
         logging.error(f"Database error: {e}")
 
