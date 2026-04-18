@@ -26,7 +26,7 @@ jobs:
         uses: docker/metadata-action@v6
         with:
           images: {{ steps.registry.outputs.host }}/${{ github.repository }}
-          tags:
+          tags: |
             type=ref,event=branch
             type=ref,event=pr
             type=semver,pattern={{version}}
