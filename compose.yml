@@ -1,6 +1,7 @@
 services:
   ich_iel-bot:
-    build: .
+    image: git.scrunkly.cat/michelle/ich_iel-bot:latest
+    restart: unless-stopped
     volumes:
       - ./data:/app/data
     env_file: ".env"

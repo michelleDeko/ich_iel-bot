@@ -4,12 +4,15 @@ A bot for Fluxer which posts a post from ich_iel every hour.
 
 ## Installation:
 
+Clone repo:
 ```
 git clone https://git.scrunkly.cat/Michelle/ich_iel-Bot.git
 ```
 
+Check .env file and add your FLUXER_TOKEN.
+
+Then start the container:
 ```
-docker compose build
 docker compose up -d
 ```
 
