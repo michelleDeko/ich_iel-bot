@@ -170,17 +170,13 @@ async def racoon(message):
     if response.status_code != 200:
         await message.channel.send("Failed to fetch racoon image")
         return
-    match = re.match(r"data:image/(\w+);base64,(.+)", response.text.strip())
-    if not match:
-        await message.channel.send("Could not fetch racoon image")
-        return
-    ext, payload = match.group(1), match.group(2)
+    _, _, payload = response.text.strip().partition(",")
     try:
         image_bytes = base64.b64decode(payload)
     except (ValueError, base64.binascii.Error):
         await message.channel.send("Could not decode racoon image")
         return
-    await message.channel.send(file=fluxer.File(image_bytes, filename=f"racoon.{ext}"))
+    await message.channel.send(file=fluxer.File(image_bytes, filename="racoon.jpg"))
 
 async def post_reddit():
     subreddit = os.getenv("SUBREDDIT", "ich_iel")
