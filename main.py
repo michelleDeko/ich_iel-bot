@@ -175,6 +175,7 @@ async def racoon(message):
         image_bytes = base64.b64decode(payload)
     except (ValueError, base64.binascii.Error):
         await message.channel.send("Could not decode racoon image")
+        logging.warning(f"Failed to decode base64 image data: {payload}")
         return
     await message.channel.send(file=fluxer.File(image_bytes, filename="racoon.jpg"))
 
