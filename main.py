@@ -139,8 +139,8 @@ async def dog(message):
     response = requests.get("https://dog.ceo/api/breeds/image/random")
     if response.status_code == 200:
         data = response.json()
-        if data and isinstance(data, list) and "message" in data[0]:
-            await message.channel.send(data[0]["message"])
+        if data and isinstance(data, dict) and "message" in data:
+            await message.channel.send(data["message"])
         else:
             await message.channel.send("Could not fetch dog image")
     else:
@@ -151,8 +151,8 @@ async def fox(message):
     response = requests.get("https://randomfox.ca/floof/")
     if response.status_code == 200:
         data = response.json()
-        if data and isinstance(data, list) and "image" in data[0]:
-            await message.channel.send(data[0]["image"])
+        if data and isinstance(data, dict) and "image" in data:
+            await message.channel.send(data["image"])
         else:
             await message.channel.send("Could not fetch fox image")
     else:
