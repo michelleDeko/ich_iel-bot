@@ -2,3 +2,4 @@ fluxer.py
 requests
 asyncio
 dotenv
+aiohttp

@@ -1,3 +1,4 @@
+import aiohttp
 import fluxer
 import requests
 import json
@@ -166,16 +167,11 @@ async def racoon(message):
         "https://api.mapach.es/v1/meme",
         "https://api.mapach.es/v1/coon"
     ])
-    response = requests.get(urls)
+    async with aiohttp.ClientSession() as session:
+        async with session.get(urls) as response:
+            image_bytes = await response.read()
     if response.status_code != 200:
         await message.channel.send("Failed to fetch racoon image")
-        return
-    _, _, payload = response.text.strip().partition(",")
-    try:
-        image_bytes = base64.b64decode(payload)
-    except (ValueError, base64.binascii.Error):
-        await message.channel.send("Could not decode racoon image")
-        logging.warning(f"Failed to decode base64 image data: {payload}")
         return
     await message.channel.send(file=fluxer.File(image_bytes, filename="racoon.jpg"))
 
