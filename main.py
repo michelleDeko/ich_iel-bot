@@ -133,6 +133,31 @@ async def cat(message):
     else:
         await message.channel.send("Failed to fetch cat image")
 
+# i thought dogs and foxes would be nice to have too
+@bot.command()
+async def dog(message):
+    response = requests.get("https://dog.ceo/api/breeds/image/random")
+    if response.status_code == 200:
+        data = response.json()
+        if data and isinstance(data, list) and "url" in data[0]:
+            await message.channel.send(data[0]["url"])
+        else:
+            await message.channel.send("Could not fetch dog image")
+    else:
+        await message.channel.send("Failed to fetch dog image")
+
+@bot.command()
+async def fox(message):
+    response = requests.get("https://randomfox.ca/floof/")
+    if response.status_code == 200:
+        data = response.json()
+        if data and isinstance(data, list) and "url" in data[0]:
+            await message.channel.send(data[0]["url"])
+        else:
+            await message.channel.send("Could not fetch fox image")
+    else:
+        await message.channel.send("Failed to fetch fox image")
+
 async def post_reddit():
     subreddit = os.getenv("SUBREDDIT", "ich_iel")
     posts = await get_latest_post(subreddit)
