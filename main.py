@@ -170,6 +170,7 @@ async def post_reddit():
                         else:
                             logging.warning(f"Bot is not in guild {guild_id}, removing guild from database")
                             cur.execute("DELETE FROM channels WHERE guild_id = ?", (guild_id,))
+                            cur.execute("DELETE FROM posted WHERE guild_id = ?", (guild_id,))
                             con.commit()
                             break
                     else:
@@ -200,27 +201,6 @@ async def check_guild(guild_id):
     except fluxer.Forbidden:
         logging.warning(f"Bot doesn't have access to guild {guild_id}")
         return False
-
-@bot.event
-async def on_guild_remove(guild):
-    if isinstance(guild, fluxer.Guild):
-        guild_id = guild.id
-        logging.info(f"Removed from guild: {guild.name} (ID: {guild_id}), removing from database")
-    else:
-        if guild.get("unavailable"):
-            logging.info(f"Guild {guild.get('id')} is temporarily unavailable, ignoring")
-            return
-        guild_id = int(guild["id"])
-        logging.info(f"Removed from guild {guild_id}, removing from database")
-    try:
-        con = sqlite3.connect('data/ich_iel-bot.db')
-        cur = con.cursor()
-        cur.execute("DELETE FROM channels WHERE guild_id = ?", (guild_id,))
-        cur.execute("DELETE FROM posted WHERE guild_id = ?", (guild_id,))
-        con.commit()
-        logging.info(f"Guild {guild_id} removed from database successfully")
-    except sqlite3.Error as e:
-        logging.error(f"Database error while removing guild {guild_id}: {e}")
 
 if __name__ == "__main__":
     logging.info("Starting bot...")
