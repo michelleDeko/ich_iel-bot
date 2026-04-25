@@ -170,7 +170,7 @@ async def racoon(message):
     async with aiohttp.ClientSession() as session:
         async with session.get(urls) as response:
             image_bytes = await response.read()
-    if response.status_code != 200:
+    if response.status != 200:
         await message.channel.send("Failed to fetch racoon image")
         return
     await message.channel.send(file=fluxer.File(image_bytes, filename="racoon.jpg"))
