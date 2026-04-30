@@ -13,9 +13,13 @@ def setup(bot):
     os.makedirs(AUDIO_DIR, exist_ok=True)
     bot.command()(play)
 
-async def play(ctx, channel_id: int, *, path: str):
-    channel = await _bot.fetch_channel(str(channel_id))
-    url = ctx.content[len("!play "):].strip()
+async def play(ctx, *, url: str):
+    guild_id = ctx._guild.id  # Guild aus der Message  
+    voice_state = _bot.get_voice_state(guild_id, ctx.author.id)  
+  
+    if voice_state is None or voice_state.channel_id is None:  
+        await ctx.reply("You're not in a voice channel!")  
+        return 
     logging.info(f"Playing {url}")
     ydl_opts = {
         'format': 'm4a/bestaudio/best',
@@ -32,7 +36,7 @@ async def play(ctx, channel_id: int, *, path: str):
         title = info.get('title', 'Unknown Title')
         logging.info(f"Downloaded to {filename}")
 
-    ctx.send(f"Playing {title} in {channel.mention}")
+    ctx.send(f"Playing {title} in {voice_state.channel.mention}")
     
-    async with await channel.connect(_bot) as vc:
+    async with await voice_state.channel.connect(_bot) as vc:
         await vc.play_file(filename)
