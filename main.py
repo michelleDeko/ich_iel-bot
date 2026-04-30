@@ -17,7 +17,7 @@ import yt_player
 
 load_dotenv()
 prefix = os.getenv("COMMAND_PREFIX", "/")
-bot = fluxer.Bot(command_prefix=prefix, intents=fluxer.Intents.GUILD_MESSAGES | fluxer.Intents.GUILDS | fluxer.Intents.MESSAGE_CONTENT)
+bot = fluxer.Bot(command_prefix=prefix, intents=fluxer.Intents.GUILD_MESSAGES | fluxer.Intents.GUILDS | fluxer.Intents.MESSAGE_CONTENT | fluxer.Intents.GUILD_VOICE_STATES)
 yt_player.setup(bot)
 
 task = None

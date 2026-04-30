@@ -18,7 +18,7 @@ async def play(ctx, *, url: str):
     voice_state = _bot.get_voice_state(guild_id, ctx.author.id)  
   
     if voice_state is None or voice_state.channel_id is None:  
-        await ctx.reply("You're not in a voice channel!")  
+        await ctx.reply("You're not in a voice channel!")
         return 
     logging.info(f"Playing {url}")
     ydl_opts = {
