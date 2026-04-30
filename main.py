@@ -10,6 +10,7 @@ import os
 import re
 import logging
 import random
+import yt_player
 
 # this is a bot which posts the latest image post from ich_iel
 # the code probably sucks, but it works, so I don't care
@@ -17,6 +18,7 @@ import random
 load_dotenv()
 prefix = os.getenv("COMMAND_PREFIX", "/")
 bot = fluxer.Bot(command_prefix=prefix, intents=fluxer.Intents.GUILD_MESSAGES | fluxer.Intents.GUILDS | fluxer.Intents.MESSAGE_CONTENT)
+yt_player.setup(bot)
 
 task = None
 

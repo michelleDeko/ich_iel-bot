@@ -1,5 +1,6 @@
-fluxer.py
+fluxer.py[voice]
 requests
 asyncio
 dotenv
 aiohttp
+yt-dlp
