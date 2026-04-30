@@ -17,9 +17,10 @@ async def play(ctx, *, url: str):
     guild_id = ctx._guild.id  # Guild aus der Message  
     voice_state = _bot.get_voice_state(guild_id, ctx.author.id)  
   
-    if voice_state is None or voice_state.channel_id is None:  
+    if voice_state is None or voice_state.channel_id is None:
         await ctx.reply("You're not in a voice channel!")
-        return 
+        return
+    channel = await _bot.fetch_channel(str(voice_state.channel_id))
     logging.info(f"Playing {url}")
     ydl_opts = {
         'format': 'm4a/bestaudio/best',
@@ -36,7 +37,7 @@ async def play(ctx, *, url: str):
         title = info.get('title', 'Unknown Title')
         logging.info(f"Downloaded to {filename}")
 
-    ctx.send(f"Playing {title} in {voice_state.channel.mention}")
-    
-    async with await voice_state.channel.connect(_bot) as vc:
+    await ctx.reply(f"Playing {title} in {channel.mention}")
+
+    async with await channel.connect(_bot) as vc:
         await vc.play_file(filename)
