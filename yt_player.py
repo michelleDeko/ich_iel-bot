@@ -14,7 +14,7 @@ def setup(bot):
     bot.command()(play)
 
 async def play(ctx, *, url: str):
-    guild_id = ctx._guild.id  # Guild aus der Message  
+    guild_id = ctx._guild.id
     voice_state = _bot.get_voice_state(guild_id, ctx.author.id)  
   
     if voice_state is None or voice_state.channel_id is None:

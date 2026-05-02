@@ -11,6 +11,7 @@ import re
 import logging
 import random
 import yt_player
+import xml.etree.ElementTree as ET
 
 # this is a bot which posts the latest image post from ich_iel
 # the code probably sucks, but it works, so I don't care
@@ -53,32 +54,30 @@ async def post_reddit_periodically():
 
 async def get_latest_post(subreddit):
     post_limit = os.getenv("POST_LIMIT", 20)
-    url = f"https://www.reddit.com/r/{subreddit}/hot.json?limit={post_limit}"
-    headers = {"User-Agent": "Mozilla/5.0 (compatible; ich_iel-Bot/0.3)"}
+    url = f"https://www.reddit.com/r/{subreddit}/hot.rss?limit={post_limit}"
+    headers = {"User-Agent": "Mozilla/5.0 (compatible; ich_iel-Bot/0.5.1)"}
     response = requests.get(url, headers=headers)
-    if response.status_code == 200:
-        if response.headers.get("Content-Type", "").startswith("application/json"):
-            try:
-                data = response.json()
-                logging.debug(f"Fetched data from Reddit: {data}")
-                posts = []
-                if data["data"]["children"]:
-                    for child in data["data"]["children"]:
-                        post = child["data"]
-                        if post.get("post_hint") == "image" and post.get("url", "").endswith((".jpg", ".png", ".jpeg", ".gif")):
-                            logging.debug(f"Found image post: {post['title']} - {post['url']}")
-                            posts.append((post["title"], post["url"]))
-                return posts
-            except (KeyError, json.JSONDecodeError):
-                logging.error(f"Error parsing Reddit response: {response.text}")
-                return []
-        else:
-            logging.warning(f"Unexpected content type from Reddit: {response.headers.get('Content-Type')}")
-            logging.warning(f"Response content: {response.text}")
-            return []
-    else:
-        logging.error(f"Failed to fetch Reddit data (maybe a block?): {response.status_code}")
+    if response.status_code != 200:
+        logging.error(f"Failed to fetch RSS feed: {response.status_code}")
         return []
+    posts = []
+    try:
+        root = ET.fromstring(response.text)
+        ns = {"atom": "http://www.w3.org/2005/Atom"}
+        for entry in root.findall("atom:entry", ns):
+            post_title = entry.find("atom:title", ns)
+            content = entry.find("atom:content", ns)
+            if post_title is None or content is None or content.text is None:
+                continue
+            link_match = re.search(r'<a href="([^"]+)">\[link\]</a>', content.text)
+            if link_match and link_match.group(1).lower().endswith(('.jpg', '.jpeg', '.png', '.gif')):
+                logging.debug(f"Found image post: {post_title.text} - {link_match.group(1)}")
+                posts.append((post_title.text, link_match.group(1)))
+    except ET.ParseError as e:
+        logging.error(f"Error parsing RSS feed: {e}")
+        return []
+    
+    return posts
 
 async def init_db():
     try:
