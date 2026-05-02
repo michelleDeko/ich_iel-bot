@@ -55,7 +55,7 @@ async def post_reddit_periodically():
 async def get_latest_post(subreddit):
     post_limit = os.getenv("POST_LIMIT", 20)
     url = f"https://www.reddit.com/r/{subreddit}/hot.rss?limit={post_limit}"
-    headers = {"User-Agent": "Mozilla/5.0 (compatible; ich_iel-Bot/0.5.1)"}
+    headers = {"User-Agent": "Mozilla/5.0 (compatible; ich_iel-Bot/0.6.0)"}
     response = requests.get(url, headers=headers)
     if response.status_code != 200:
         logging.error(f"Failed to fetch RSS feed: {response.status_code}")
@@ -121,7 +121,7 @@ async def setChannel(message):
 
 @bot.command()
 async def version(message):
-    await message.channel.send("Version 0.5.1 is running\nSource code: https://github.com/michelleDeko/ich_iel-bot")
+    await message.channel.send("Version 0.6.0 is running\nSource code: https://github.com/michelleDeko/ich_iel-bot")
 
 # the cat bot died, so i wanted to add this command to this bot
 @bot.command()
