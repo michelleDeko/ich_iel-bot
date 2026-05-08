@@ -176,6 +176,28 @@ async def racoon(message):
         return
     await message.channel.send(file=fluxer.File(image_bytes, filename="racoon.jpg"))
 
+# i just watched beastars and i realised that this bot needs a bnuy command
+# maybe I will switch the API later since this one seems to only have gifs
+@bot.command()
+async def bnuy(message):
+    async with aiohttp.ClientSession() as session:
+        async with session.get("https://api.bunnies.io/v2/loop/random/?media=gif,png") as response:
+            data = await response.json()
+        if response.status != 200 or not data or "media" not in data:
+            await message.channel.send("Failed to fetch image of a bunny")
+            return
+        image_url = data["media"].get("gif")
+        if not image_url:
+            await message.channel.send("Failed to fetch image of a bunny")
+            return
+        file_ext = "gif" if image_url.lower().endswith(".gif") else "png"
+        async with session.get(image_url) as image_response:
+            if image_response.status != 200:
+                await message.channel.send("Failed to fetch image of a bunny")
+                return
+            image_bytes = await image_response.read()
+        await message.channel.send(file=fluxer.File(image_bytes, filename=f"bnuy.{file_ext}"))
+
 async def post_reddit():
     subreddit = os.getenv("SUBREDDIT", "ich_iel")
     posts = await get_latest_post(subreddit)
