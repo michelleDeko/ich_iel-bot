@@ -180,22 +180,33 @@ async def racoon(message):
 # maybe I will switch the API later since this one seems to only have gifs
 @bot.command()
 async def bnuy(message):
+    urls = random.choice([
+        "https://api.bunnies.io/v2/loop/random/?media=gif,png",
+        "https://bnuy-api.scrunkly.cat/random"
+    ])
     async with aiohttp.ClientSession() as session:
-        async with session.get("https://api.bunnies.io/v2/loop/random/?media=gif,png") as response:
+        async with session.get(urls) as response:
+            if response.status != 200:
+                await message.channel.send("Failed to fetch image of a bunny")
+                return
             data = await response.json()
-        if response.status != 200 or not data or "media" not in data:
-            await message.channel.send("Failed to fetch image of a bunny")
-            return
-        image_url = data["media"].get("gif")
+
+        image_url = (
+            data.get("media", {}).get("gif")
+            or data.get("media", {}).get("png")
+            or data.get("url")
+        )
         if not image_url:
             await message.channel.send("Failed to fetch image of a bunny")
             return
-        file_ext = "gif" if image_url.lower().endswith(".gif") else "png"
+        
         async with session.get(image_url) as image_response:
             if image_response.status != 200:
                 await message.channel.send("Failed to fetch image of a bunny")
                 return
             image_bytes = await image_response.read()
+            content_type = image_response.headers.get("Content-Type", "").split(";")[0]
+            file_ext = content_type.split("/")[-1] if content_type.startswith("image/") else "jpg"
         await message.channel.send(file=fluxer.File(image_bytes, filename=f"bnuy.{file_ext}"))
 
 async def post_reddit():
