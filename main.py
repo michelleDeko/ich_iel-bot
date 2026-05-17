@@ -150,6 +150,7 @@ async def dog(message):
         await message.channel.send("Failed to fetch dog image")
 
 @bot.command()
+@bot.command("fops")
 async def fox(message):
     response = requests.get("https://randomfox.ca/floof/")
     if response.status_code == 200:
