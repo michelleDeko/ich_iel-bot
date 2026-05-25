@@ -164,6 +164,8 @@ async def fox(message):
 
 # time for racoons
 @bot.command()
+@bot.command("raccoon")
+@bot.command("coon")
 async def racoon(message):
     urls = random.choice([
         "https://api.mapach.es/v1/meme",
@@ -180,6 +182,8 @@ async def racoon(message):
 # i just watched beastars and i realised that this bot needs a bnuy command
 # maybe I will switch the API later since this one seems to only have gifs
 @bot.command()
+@bot.command("bnuuy")
+@bot.command("bunny")
 async def bnuy(message):
     urls = random.choice([
         "https://api.bunnies.io/v2/loop/random/?media=gif,png",
