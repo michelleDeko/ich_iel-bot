@@ -214,6 +214,32 @@ async def bnuy(message):
             file_ext = content_type.split("/")[-1] if content_type.startswith("image/") else "jpg"
         await message.channel.send(file=fluxer.File(image_bytes, filename=f"bnuy.{file_ext}"))
 
+@bot.command()
+@bot.command("capy")
+async def capybara(message):
+    async with aiohttp.ClientSession() as session:
+        async with session.get("https://api.capy.lol/v1/capybara?json=true") as response:
+            if response.status != 200:
+                await message.channel.send("Failed to fetch image of a bunny")
+                return
+            data = await response.json()
+
+        image_url = (
+            data.get("data", {}).get("url")
+        )
+        if not image_url:
+            await message.channel.send("Failed to fetch image of a capybara")
+            return
+        
+        async with session.get(image_url) as image_response:
+            if image_response.status != 200:
+                await message.channel.send("Failed to fetch image of a capybara")
+                return
+            image_bytes = await image_response.read()
+            content_type = image_response.headers.get("Content-Type", "").split(";")[0]
+            file_ext = content_type.split("/")[-1] if content_type.startswith("image/") else "jpeg"
+        await message.channel.send(file=fluxer.File(image_bytes, filename=f"capybara.{file_ext}"))
+
 async def post_reddit():
     subreddit = os.getenv("SUBREDDIT", "ich_iel")
     posts = await get_latest_post(subreddit)
