@@ -269,7 +269,18 @@ async def post_reddit():
                     channel = await bot.fetch_channel(int(channel_id))
                     if channel:
                         if await check_guild(guild_id):
-                            await channel.send(f"{title}\nOriginal post: {image_url}")
+                            async with aiohttp.ClientSession() as session:
+                                async with session.get(image_url) as response:
+                                    if response.status != 200:
+                                        logging.error(f"Failed to fetch image from {image_url}: {response.status}")
+                                        continue
+                                    image_bytes = await response.read()
+                                    content_type = response.headers.get("Content-Type", "").split(";")[0]
+                                    file_ext = content_type.split("/")[-1] if content_type.startswith("image/") else "jpg"
+                                    await channel.send(
+                                        content=f"{title}\nOriginal post: {image_url}",
+                                        file=fluxer.File(image_bytes, filename=f"{post_id}.{file_ext}")
+                                    )
                             cur.execute("INSERT OR REPLACE INTO posted (guild_id, post_id) VALUES (?, ?)", (guild_id, post_id))
                             con.commit()
                             logging.info(f"Posted to channel {channel_id} in guild {guild_id}")
