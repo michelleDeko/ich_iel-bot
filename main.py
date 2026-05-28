@@ -278,7 +278,7 @@ async def post_reddit():
                                     content_type = response.headers.get("Content-Type", "").split(";")[0]
                                     file_ext = content_type.split("/")[-1] if content_type.startswith("image/") else "jpg"
                                     await channel.send(
-                                        content=f"{title}\nOriginal post: {image_url}",
+                                        content=f"{title}\nOriginal post: <{image_url}>",
                                         file=fluxer.File(image_bytes, filename=f"{post_id}.{file_ext}")
                                     )
                             cur.execute("INSERT OR REPLACE INTO posted (guild_id, post_id) VALUES (?, ?)", (guild_id, post_id))
